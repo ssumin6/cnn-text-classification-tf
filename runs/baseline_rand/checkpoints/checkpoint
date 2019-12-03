@@ -1,0 +1,6 @@
+model_checkpoint_path: "/root/cnn-text-classification-tf/runs/1575378865/checkpoints/model-21800"
+all_model_checkpoint_paths: "/root/cnn-text-classification-tf/runs/1575378865/checkpoints/model-21400"
+all_model_checkpoint_paths: "/root/cnn-text-classification-tf/runs/1575378865/checkpoints/model-21500"
+all_model_checkpoint_paths: "/root/cnn-text-classification-tf/runs/1575378865/checkpoints/model-21600"
+all_model_checkpoint_paths: "/root/cnn-text-classification-tf/runs/1575378865/checkpoints/model-21700"
+all_model_checkpoint_paths: "/root/cnn-text-classification-tf/runs/1575378865/checkpoints/model-21800"
