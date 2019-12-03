@@ -16,7 +16,7 @@ from tensorflow.contrib import learn
 tf.flags.DEFINE_float("dev_sample_percentage", .1, "Percentage of the training data to use for validation")
 tf.flags.DEFINE_string("positive_data_file", "./data/rt-polaritydata/rt-polarity.pos", "Data source for the positive data.")
 tf.flags.DEFINE_string("negative_data_file", "./data/rt-polaritydata/rt-polarity.neg", "Data source for the negative data.")
-tf.flags.DEFINE_string("checkpoint_directory","baseline")
+tf.flags.DEFINE_string("checkpoint_directory","baseline", "Name of checkpointdirectory")
 
 # Model Hyperparameters
 tf.flags.DEFINE_integer("embedding_dim", 128, "Dimensionality of character embedding (default: 128)")
@@ -50,11 +50,12 @@ def preprocess():
     print("Loading data...")
     # x_text, y = data_helpers.load_data_and_labels(FLAGS.positive_data_file, FLAGS.negative_data_file)
     x_train, y_train = data_helpers.load_sst_binary('./data/sst-binary/stsa.binary.train')
-
+    x_dev, y_dev = data_helpers.load_sst_binary('./data/sst-binary/stsa.binary.test')
     # Build vocabulary
     max_document_length = max([len(x.split(" ")) for x in x_train])
     vocab_processor = learn.preprocessing.VocabularyProcessor(max_document_length)
-    x = np.array(list(vocab_processor.fit_transform(x_train)))
+    x_train = np.array(list(vocab_processor.fit_transform(x_train)))
+    x_dev = np.array(list(vocab_processor.fit_transform(x_dev)))
 
     # Randomly shuffle data
     # np.random.seed(10)
