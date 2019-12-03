@@ -42,6 +42,18 @@ def load_data_and_labels(positive_data_file, negative_data_file):
     y = np.concatenate([positive_labels, negative_labels], 0)
     return [x_text, y]
 
+def load_sst_binary(input_data_file):
+    # Load data from files
+    examples = list(open(input_data_file, "r", encoding='utf-8').readlines())
+    x_text = []
+    y = []
+    for s in examples:
+        x_text.append(clean_str(s[2:].strip()))
+        if int(s[0]):
+            y.append([0, 1])
+        else:
+            y.append([1, 0])
+    return [np.array(x_text), np.array(y)]
 
 def batch_iter(data, batch_size, num_epochs, shuffle=True):
     """
