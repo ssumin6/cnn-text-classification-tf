@@ -13,13 +13,11 @@ from tensorflow.contrib import learn
 # ==================================================
 
 # Data loading params
-tf.flags.DEFINE_float("dev_sample_percentage", .1, "Percentage of the training data to use for validation")
-tf.flags.DEFINE_string("positive_data_file", "./data/rt-polaritydata/rt-polarity.pos", "Data source for the positive data.")
-tf.flags.DEFINE_string("negative_data_file", "./data/rt-polaritydata/rt-polarity.neg", "Data source for the negative data.")
-tf.flags.DEFINE_string("checkpoint_directory","baseline", "Name of checkpointdirectory")
+tf.flags.DEFINE_string("checkpoint_directory","w2v_nonstatic", "Name of checkpointdirectory")
 
 # Model Hyperparameters
-tf.flags.DEFINE_integer("embedding_dim", 128, "Dimensionality of character embedding (default: 128)")
+tf.flags.DEFINE_string("embedding", "word2vec", "Pretrained word embedding to use (default: None)")
+tf.flags.DEFINE_integer("embedding_dim", 300, "Dimensionality of character embedding (default: 128)")
 tf.flags.DEFINE_string("filter_sizes", "3,4,5", "Comma-separated filter sizes (default: '3,4,5')")
 tf.flags.DEFINE_integer("num_filters", 128, "Number of filters per filter size (default: 128)")
 tf.flags.DEFINE_float("dropout_keep_prob", 0.5, "Dropout keep probability (default: 0.5)")
@@ -37,10 +35,10 @@ tf.flags.DEFINE_boolean("log_device_placement", False, "Log placement of ops on 
 
 FLAGS = tf.flags.FLAGS
 # FLAGS._parse_flags()
-# print("\nParameters:")
-# for attr, value in sorted(FLAGS.__flags.items()):
-#     print("{}={}".format(attr.upper(), value))
-# print("")
+print("\nParameters:")
+for attr, value in sorted(FLAGS.__flags.items()):
+    print("{}={}".format(attr.upper(), value))
+print("")
 
 def preprocess():
     # Data Preparation
@@ -134,13 +132,46 @@ def train(x_train, y_train, vocab_processor, x_dev, y_dev):
             checkpoint_prefix = os.path.join(checkpoint_dir, "model")
             if not os.path.exists(checkpoint_dir):
                 os.makedirs(checkpoint_dir)
-            saver = tf.train.Saver(tf.global_variables(), max_to_keep=FLAGS.num_checkpoints)
+            saver = tf.train.Saver(tf.all_variables())
 
             # Write vocabulary
             vocab_processor.save(os.path.join(out_dir, "vocab"))
 
             # Initialize all variables
-            sess.run(tf.global_variables_initializer())
+            sess.run(tf.initialize_all_variables())
+            if FLAGS.embedding == "word2vec":
+               # initial matrix with random uniform
+                initW = np.random.uniform(-0.25,0.25,(len(vocab_processor.vocabulary_), FLAGS.embedding_dim))
+                # load any vectors from the word2vec
+                print("Embed word using {}\n".format(FLAGS.embedding))
+                with open("./embedding/GoogleNews-vectors-negative300.bin", "rb") as f:
+                    header = f.readline()
+                    vocab_size, layer1_size = map(int, header.split())  # 3000000, 300
+                    binary_len = np.dtype('float32').itemsize * layer1_size # 1200
+                    # print(vocab_size, layer1_size)
+                    for line in range(vocab_size):
+                        # print(line)
+                        word = []
+                        while True:
+                            ch = f.read(1).decode('latin-1')
+                            if ch == ' ':
+                                word = ''.join(word)
+                                break
+                            if ch != '\n':
+                                word.append(ch)
+                            else:
+                                print('else: ', word, ch)
+                        print(word)
+                        idx = vocab_processor.vocabulary_.get(word)
+                        # print("value of idx is" + str(idx));
+                        if idx != 0:
+                            # print("came to if")
+                            initW[idx] = np.fromstring(f.read(binary_len), dtype='float32')
+                        else:
+                            # print("came to else");
+                            f.read(binary_len)
+                sess.run(cnn.W.assign(initW))
+                print("Ended")
 
             def train_step(x_batch, y_batch):
                 """
