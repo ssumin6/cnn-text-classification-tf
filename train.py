@@ -13,13 +13,14 @@ from tensorflow.contrib import learn
 # ==================================================
 
 # Data loading params
-tf.flags.DEFINE_string("checkpoint_directory","w2v_nonstatic", "Name of checkpointdirectory")
+tf.flags.DEFINE_string("checkpoint_directory","w2v_multichannel", "Name of checkpoint directory")
 
 # Model Hyperparameters
 tf.flags.DEFINE_string("embedding", "word2vec", "Pretrained word embedding to use (default: None)")
 tf.flags.DEFINE_integer("embedding_dim", 300, "Dimensionality of character embedding (default: 128)")
 tf.flags.DEFINE_string("filter_sizes", "3,4,5", "Comma-separated filter sizes (default: '3,4,5')")
 tf.flags.DEFINE_integer("num_filters", 128, "Number of filters per filter size (default: 128)")
+tf.flags.DEFINE_integer("num_channels", 2, "Number of channels (default: 1)")
 tf.flags.DEFINE_float("dropout_keep_prob", 0.5, "Dropout keep probability (default: 0.5)")
 tf.flags.DEFINE_float("l2_reg_lambda", 0.0, "L2 regularization lambda (default: 0.0)")
 
@@ -90,7 +91,8 @@ def train(x_train, y_train, vocab_processor, x_dev, y_dev):
                 embedding_size=FLAGS.embedding_dim,
                 filter_sizes=list(map(int, FLAGS.filter_sizes.split(","))),
                 num_filters=FLAGS.num_filters,
-                l2_reg_lambda=FLAGS.l2_reg_lambda)
+                l2_reg_lambda=FLAGS.l2_reg_lambda,
+                num_channels=FLAGS.num_channels)
 
             # Define Training procedure
             global_step = tf.Variable(0, name="global_step", trainable=False)
@@ -161,7 +163,7 @@ def train(x_train, y_train, vocab_processor, x_dev, y_dev):
                                 word.append(ch)
                             else:
                                 print('else: ', word, ch)
-                        print(word)
+                        # print(word)
                         idx = vocab_processor.vocabulary_.get(word)
                         # print("value of idx is" + str(idx));
                         if idx != 0:
@@ -178,7 +180,7 @@ def train(x_train, y_train, vocab_processor, x_dev, y_dev):
                 A single training step
                 """
                 feed_dict = {
-                  cnn.input_x: x_batch,
+                  cnn.input_x: np.reshape(x_batch, [-1, FLAGS.num_channels, x_train.shape[1]]),
                   cnn.input_y: y_batch,
                   cnn.dropout_keep_prob: FLAGS.dropout_keep_prob
                 }
@@ -194,7 +196,7 @@ def train(x_train, y_train, vocab_processor, x_dev, y_dev):
                 Evaluates model on a dev set
                 """
                 feed_dict = {
-                  cnn.input_x: x_batch,
+                  cnn.input_x: np.reshape(x_batch, [-1, FLAGS.num_channels, x_train.shape[1]]),
                   cnn.input_y: y_batch,
                   cnn.dropout_keep_prob: 1.0
                 }
