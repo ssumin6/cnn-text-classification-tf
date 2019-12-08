@@ -163,6 +163,24 @@ def train(x_train, y_train, vocab_processor, x_dev, y_dev):
                     sess.run(cnn.W2.assign(initW))
                 print("Ended")
 
+            if FLAGS.embedding == "glove":
+                initW = np.random.uniform(-0.25,0.25,(len(vocab_processor.vocabulary_), FLAGS.embedding_dim))
+                # load any vectors from the glove
+                print("Embed word using {}\n".format(FLAGS.embedding))
+                with open("embedding/glove.6B.300d.txt", "rb") as f:
+                    while True:
+                        line = f.readline()
+                        if not line: break
+                        line = line.decode().split(" ")
+                        word = line[0]
+                        idx = vocab_processor.vocabulary_.get(word)
+                        if idx != 0:
+                            initW[idx] = np.array(line[1:], dtype='float32')
+                sess.run(cnn.W.assign(initW))
+                if FLAGS.num_channels ==2:
+                    sess.run(cnn.W2.assign(initW))
+                print("Ended")
+
             def train_step(x_batch, y_batch):
                 """
                 A single training step
