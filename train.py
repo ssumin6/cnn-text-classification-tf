@@ -11,35 +11,21 @@ from tensorflow.contrib import learn
 
 # Parameters
 # ==================================================
+checkpoint_directory = "fasttext"
+embedding = "fasttext"
+embedding_dim = 300
+filter_sizes = [3,4,5]
+num_filters = 128
+num_channels = 2
 
-# Data loading params
-tf.flags.DEFINE_string("checkpoint_directory","glove_nonstatic", "Name of checkpoint directory")
+evaluate_every = 100
+checkpoint_every = 100
+num_checkpoints = 5
 
-# Model Hyperparameters
-tf.flags.DEFINE_string("embedding", "glove", "Pretrained word embedding to use (default: None)")
-tf.flags.DEFINE_integer("embedding_dim", 300, "Dimensionality of character embedding (default: 128)")
-tf.flags.DEFINE_string("filter_sizes", "3,4,5", "Comma-separated filter sizes (default: '3,4,5')")
-tf.flags.DEFINE_integer("num_filters", 128, "Number of filters per filter size (default: 128)")
-tf.flags.DEFINE_integer("num_channels", 1, "Number of channels (default: 1)")
-tf.flags.DEFINE_float("dropout_keep_prob", 0.5, "Dropout keep probability (default: 0.5)")
-tf.flags.DEFINE_float("l2_reg_lambda", 0.0, "L2 regularization lambda (default: 0.0)")
-
-# Training parameters
-tf.flags.DEFINE_integer("batch_size", 64, "Batch Size (default: 64)")
-tf.flags.DEFINE_integer("num_epochs", 200, "Number of training epochs (default: 200)")
-tf.flags.DEFINE_integer("evaluate_every", 100, "Evaluate model on dev set after this many steps (default: 100)")
-tf.flags.DEFINE_integer("checkpoint_every", 100, "Save model after this many steps (default: 100)")
-tf.flags.DEFINE_integer("num_checkpoints", 2, "Number of checkpoints to store (default: 5)")
-# Misc Parameters
-tf.flags.DEFINE_boolean("allow_soft_placement", True, "Allow device soft device placement")
-tf.flags.DEFINE_boolean("log_device_placement", False, "Log placement of ops on devices")
-
-FLAGS = tf.flags.FLAGS
-# FLAGS._parse_flags()
-print("\nParameters:")
-for attr, value in sorted(FLAGS.__flags.items()):
-    print("{}={}".format(attr.upper(), value))
-print("")
+dropout_keep_prob = 0.5
+l2_reg_lambda = 0.0
+batch_size = 64
+num_epochs = 200
 
 def preprocess():
     # Data Preparation
@@ -47,7 +33,7 @@ def preprocess():
 
     # Load data
     print("Loading data...")
-    # x_text, y = data_helpers.load_data_and_labels(FLAGS.positive_data_file, FLAGS.negative_data_file)
+    # x_text, y = data_helpers.load_data_and_labels(positive_data_file, negative_data_file)
     x_train, y_train = data_helpers.load_sst_binary('./data/sst-binary/stsa.binary.train')
     x_dev, y_dev = data_helpers.load_sst_binary('./data/sst-binary/stsa.binary.test')
     # Build vocabulary
@@ -64,7 +50,7 @@ def preprocess():
 
     # Split train/test set
     # TODO: This is very crude, should use cross-validation
-    # dev_sample_index = -1 * int(FLAGS.dev_sample_percentage * float(len(y)))
+    # dev_sample_index = -1 * int(dev_sample_percentage * float(len(y)))
     # x_train, x_dev = x_shuffled[:dev_sample_index], x_shuffled[dev_sample_index:]
     # y_train, y_dev = y_shuffled[:dev_sample_index], y_shuffled[dev_sample_index:]
 
@@ -80,19 +66,19 @@ def train(x_train, y_train, vocab_processor, x_dev, y_dev):
 
     with tf.Graph().as_default():
         session_conf = tf.ConfigProto(
-          allow_soft_placement=FLAGS.allow_soft_placement,
-          log_device_placement=FLAGS.log_device_placement)
+          allow_soft_placement=True,
+          log_device_placement=False)
         sess = tf.Session(config=session_conf)
         with sess.as_default():
             cnn = TextCNN(
                 sequence_length=x_train.shape[1],
                 num_classes=y_train.shape[1],
                 vocab_size=len(vocab_processor.vocabulary_),
-                embedding_size=FLAGS.embedding_dim,
-                filter_sizes=list(map(int, FLAGS.filter_sizes.split(","))),
-                num_filters=FLAGS.num_filters,
-                l2_reg_lambda=FLAGS.l2_reg_lambda,
-                num_channels=FLAGS.num_channels)
+                embedding_size=embedding_dim,
+                filter_sizes=filter_sizes,
+                num_filters=num_filters,
+                l2_reg_lambda=l2_reg_lambda,
+                num_channels=num_channels)
 
             # Define Training procedure
             global_step = tf.Variable(0, name="global_step", trainable=False)
@@ -112,7 +98,7 @@ def train(x_train, y_train, vocab_processor, x_dev, y_dev):
 
             # Output directory for models and summaries
             #timestamp = str(int(time.time()))
-            out_dir = os.path.abspath(os.path.join(os.path.curdir, "runs", FLAGS.checkpoint_directory))
+            out_dir = os.path.abspath(os.path.join(os.path.curdir, "runs", checkpoint_directory))
             print("Writing to {}\n".format(out_dir))
 
             # Summaries for loss and accuracy
@@ -141,59 +127,69 @@ def train(x_train, y_train, vocab_processor, x_dev, y_dev):
 
             # Initialize all variables
             sess.run(tf.initialize_all_variables())
-            if FLAGS.embedding == "word2vec":
-               # initial matrix with random uniform
-                initW = np.random.uniform(-0.25,0.25,(len(vocab_processor.vocabulary_), FLAGS.embedding_dim))
-                # load any vectors from the word2vec
-                print("Embed word using {}\n".format(FLAGS.embedding))
-                with open("./embedding/GoogleNews-vectors-negative300.bin", "rb") as f:
-                    header = f.readline()
-                    vocab_size, layer1_size = map(int, header.split())  # 3000000, 300
-                    binary_len = np.dtype('float32').itemsize * layer1_size # 1200
-                    # print(vocab_size, layer1_size)
-                    for line in range(vocab_size):
-                        # print(line)
-                        word = []
-                        while True:
-                            ch = f.read(1).decode('latin-1')
-                            if ch == ' ':
-                                word = ''.join(word)
-                                break
-                            if ch != '\n':
-                                word.append(ch)
-                            else:
-                                print('else: ', word, ch)
-                        # print(word)
-                        idx = vocab_processor.vocabulary_.get(word)
-                        # print("value of idx is" + str(idx));
-                        if idx != 0:
-                            # print("came to if")
-                            initW[idx] = np.fromstring(f.read(binary_len), dtype='float32')
-                        else:
-                            # print("came to else");
-                            f.read(binary_len)
-                sess.run(cnn.W.assign(initW))
-                if FLAGS.num_channels ==2:
-                    sess.run(cnn.W2.assign(initW))
-                print("Ended")
 
-            if FLAGS.embedding == "glove":
-                initW = np.random.uniform(-0.25,0.25,(len(vocab_processor.vocabulary_), FLAGS.embedding_dim))
-                # load any vectors from the glove
-                print("Embed word using {}\n".format(FLAGS.embedding))
-                with open("embedding/glove.6B.300d.txt", "rb") as f:
-                    while True:
-                        line = f.readline()
-                        if not line: break
-                        line = line.decode().split(" ")
-                        word = line[0]
-                        idx = vocab_processor.vocabulary_.get(word)
-                        if idx != 0:
-                            initW[idx] = np.array(line[1:], dtype='float32')
+            #Load pre-trained word vector.
+            if embedding != "None":
+                # initial matrix with random uniform
+                initW = np.random.uniform(-0.25,0.25,(len(vocab_processor.vocabulary_), embedding_dim))
+
+                if embedding == "word2vec":                   
+                    # load any vectors from the word2vec
+                    print("Embed word using {}\n".format(embedding))
+                    with open("./embedding/GoogleNews-vectors-negative300.bin", "rb") as f:
+                        header = f.readline()
+                        vocab_size, layer1_size = map(int, header.split())  # 3000000, 300
+                        binary_len = np.dtype('float32').itemsize * layer1_size # 1200
+                        for line in range(vocab_size):
+                            word = []
+                            while True:
+                                ch = f.read(1).decode('latin-1')
+                                if ch == ' ':
+                                    word = ''.join(word)
+                                    break
+                                if ch != '\n':
+                                    word.append(ch)
+                                else:
+                                    print('else: ', word, ch)
+                            idx = vocab_processor.vocabulary_.get(word)
+                            if idx != 0:
+                                initW[idx] = np.fromstring(f.read(binary_len), dtype='float32')
+                            else:
+                                f.read(binary_len)
+
+                if embedding == "glove":
+                    # load any vectors from the glove
+                    print("Embed word using {}\n".format(embedding))
+                    with open("./embedding/glove.6B.300d.txt", "rb") as f:
+                        while True:
+                            line = f.readline()
+                            if not line: break
+                            line = line.decode().split(" ")
+                            word = line[0]
+                            idx = vocab_processor.vocabulary_.get(word)
+                            if idx != 0:
+                                initW[idx] = np.array(line[1:], dtype='float32')
+
+                if embedding == "fasttext":
+                    # load any vectors from the fasttext
+                    print("Embed word using {}\n".format(embedding))
+                    with open("./embedding/fasttext-300d-1M-subword.vec", "rb") as f:
+                        header = f.readline()
+                        vocab_size, layer1_size = map(int, header.split())  # 3000000, 300
+                        for line in range(vocab_size):
+                            line = f.readline()
+                            if not line: break
+                            line = line.decode().split(" ")
+                            word = line[0]
+                            idx = vocab_processor.vocabulary_.get(word)
+                            if idx != 0:
+                                initW[idx] = np.array(line[1:], dtype='float32')
+
                 sess.run(cnn.W.assign(initW))
-                if FLAGS.num_channels ==2:
+                if num_channels ==2:
                     sess.run(cnn.W2.assign(initW))
                 print("Ended")
+            #finished loading pre-trained word vector.
 
             def train_step(x_batch, y_batch):
                 """
@@ -202,7 +198,7 @@ def train(x_train, y_train, vocab_processor, x_dev, y_dev):
                 feed_dict = {
                   cnn.input_x: x_batch,
                   cnn.input_y: y_batch,
-                  cnn.dropout_keep_prob: FLAGS.dropout_keep_prob
+                  cnn.dropout_keep_prob: dropout_keep_prob
                 }
                 _, step, summaries, loss, accuracy = sess.run(
                     [train_op, global_step, train_summary_op, cnn.loss, cnn.accuracy],
@@ -230,23 +226,22 @@ def train(x_train, y_train, vocab_processor, x_dev, y_dev):
 
             # Generate batches
             batches = data_helpers.batch_iter(
-                list(zip(x_train, y_train)), FLAGS.batch_size, FLAGS.num_epochs)
+                list(zip(x_train, y_train)), batch_size, num_epochs)
             # Training loop. For each batch...
             for batch in batches:
                 x_batch, y_batch = zip(*batch)
                 train_step(x_batch, y_batch)
                 current_step = tf.train.global_step(sess, global_step)
-                if current_step % FLAGS.evaluate_every == 0:
+                if current_step % evaluate_every == 0:
                     print("\nEvaluation:")
                     dev_step(x_dev, y_dev, writer=dev_summary_writer)
                     print("")
-                if current_step % FLAGS.checkpoint_every == 0:
+                if current_step % checkpoint_every == 0:
                     path = saver.save(sess, checkpoint_prefix, global_step=current_step)
                     print("Saved model checkpoint to {}\n".format(path))
 
-def main(argv=None):
+def main():
     x_train, y_train, vocab_processor, x_dev, y_dev = preprocess()
     train(x_train, y_train, vocab_processor, x_dev, y_dev)
 
-if __name__ == '__main__':
-    tf.app.run()
+main()
