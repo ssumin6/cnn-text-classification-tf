@@ -2,6 +2,7 @@ import tensorflow as tf
 import numpy as np
 from tensorflow.keras.applications import ResNet50
 from operator import methodcaller
+from tqdm import tqdm
 
 class TextCNN(object):
     """
@@ -28,13 +29,13 @@ class TextCNN(object):
                 trainable=True)
 
             # #for glove word vec
-            # mapper, embed = embedding_glove(embedding_size)
+            # mapper, embed = self.embedding_glove(embedding_size)
             # self.embedded_chars = tf.nn.embedding_lookup(embed, mapper[self.input_x[:,0,:]])
-            # #for fasttext word vec
-            # mapper, embed = embedding_fast(embedding_size)
-            # self.embedded_chars = tf.nn.embedding_lookup(embed, mapper[self.input_x[:,0,:]])
+            #for fasttext word vec
+            (mapper, embed) = self.embedding_fast(embedding_size)
+            self.embedded_chars = tf.nn.embedding_lookup(embed, mapper[self.input_x[:,0,:]])
             #for random
-            self.embedded_chars = tf.nn.embedding_lookup(self.W, self.input_x[:,0,:])
+            #self.embedded_chars = tf.nn.embedding_lookup(self.W, self.input_x[:,0,:])
 
 
             self.embedded_chars_expanded = tf.expand_dims(self.embedded_chars, -1)
@@ -115,7 +116,7 @@ class TextCNN(object):
 
 
 
-    def embedding_glove(embedding_size): # [vocab_size, embedding_size 300]
+    def embedding_glove(self, embedding_size): # [vocab_size, embedding_size 300]
         f = open("embedding/glove.6B.300d.txt", 'r')
         data = f.read()
         temp = data.split("\n")
@@ -125,16 +126,16 @@ class TextCNN(object):
         mapper = {}
         embed = np.zeros([len(temp), embedding_size])
 
-        for idx, t in enumerate(temp):
+        for idx, t in tqdm(enumerate(temp)):
             embed[idx] = np.array(t[1:])
             mapper[t[0]] = idx
 
         return mapper, embed
 
-    def embedding_w2v(embedding_size): # [vocab_size, embedding_size 300]
+    def embedding_w2v(self, embedding_size): # [vocab_size, embedding_size 300]
         pass
 
-    def embedding_fast(embedding_size): # [vocab_size, embedding_size 300]
+    def embedding_fast(self, embedding_size): # [vocab_size, embedding_size 300]
         f = open("embedding/glove.6B.300d.txt", 'r')
         data = f.read()
         temp = data.split("\n")[1:]
@@ -144,7 +145,7 @@ class TextCNN(object):
         mapper = {}
         embed = np.zeros([len(temp), embedding_size])
 
-        for idx, t in enumerate(temp):
+        for idx, t in tqdm(enumerate(temp)):
             embed[idx] = np.array(t[1:])
             mapper[t[0]] = idx
 
