@@ -173,17 +173,16 @@ def train(x_train, y_train, vocab_processor, x_dev, y_dev):
                             # print("came to else");
                             f.read(binary_len)
                 sess.run(cnn.W.assign(initW))
+                if FLAGS.num_channels ==2:
+                    sess.run(cnn.W2.assign(initW))
                 print("Ended")
 
             def train_step(x_batch, y_batch):
                 """
                 A single training step
                 """
-                #x_batch = list(x_batch)
-                #x_batch = x_batch.extend(x_batch)
-                #print(len(x_batch))
                 feed_dict = {
-                  cnn.input_x: np.reshape(x_batch, [-1, FLAGS.num_channels, x_train.shape[1]]),
+                  cnn.input_x: x_batch,
                   cnn.input_y: y_batch,
                   cnn.dropout_keep_prob: FLAGS.dropout_keep_prob
                 }
@@ -198,10 +197,8 @@ def train(x_train, y_train, vocab_processor, x_dev, y_dev):
                 """
                 Evaluates model on a dev set
                 """
-                #x_batch = list(x_batch)
-                #x_batch = x_batch.extend(x_batch)
                 feed_dict = {
-                  cnn.input_x: np.reshape(x_batch, [-1, FLAGS.num_channels, x_train.shape[1]]),
+                  cnn.input_x: x_batch,
                   cnn.input_y: y_batch,
                   cnn.dropout_keep_prob: 1.0
                 }

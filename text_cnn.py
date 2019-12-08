@@ -14,7 +14,7 @@ class TextCNN(object):
       embedding_size, filter_sizes, num_filters, l2_reg_lambda=0.0, model="cnn", num_channels=1):
 
         # Placeholders for input, output and dropout
-        self.input_x = tf.placeholder(tf.int32, [None, num_channels, sequence_length], name="input_x")
+        self.input_x = tf.placeholder(tf.int32, [None, sequence_length], name="input_x")
         self.input_y = tf.placeholder(tf.float32, [None, num_classes], name="input_y")
         self.dropout_keep_prob = tf.placeholder(tf.float32, name="dropout_keep_prob")
 
@@ -27,36 +27,19 @@ class TextCNN(object):
                 tf.random_uniform([vocab_size, embedding_size], -1.0, 1.0),
                 name="W",
                 trainable=True)
-
-            # #for glove word vec
-            # mapper, embed = self.embedding_glove(embedding_size)
-            # self.embedded_chars = tf.nn.embedding_lookup(embed, mapper[self.input_x[:,0,:]])
-            #for fasttext word vec
-            (mapper, embed) = self.embedding_fast(embedding_size)
-            self.embedded_chars = tf.nn.embedding_lookup(embed, mapper[self.input_x[:,0,:]])
-            #for random
-            #self.embedded_chars = tf.nn.embedding_lookup(self.W, self.input_x[:,0,:])
-
-
+            self.embedded_chars = tf.nn.embedding_lookup(self.W, self.input_x)
             self.embedded_chars_expanded = tf.expand_dims(self.embedded_chars, -1)
             # print("original: ",self.embedded_chars_expanded.shape)
             # (?, 52, 300, 1) : (?, sequence_length, embedding_size, 1)
             if num_channels == 2:
-                W2 = tf.Variable(
+                self.W2 = tf.Variable(
                     tf.random_uniform([vocab_size, embedding_size], -1.0, 1.0),
                     name="W2",
                     trainable=False)
-                emb2 = tf.nn.embedding_lookup(W2, self.input_x[:,1,:])
+                emb2 = tf.nn.embedding_lookup(self.W2, self.input_x)
                 self.embedded_chars_expanded = tf.stack([self.embedded_chars, emb2], axis=3)
                 print("multichannel: ",self.embedded_chars_expanded.shape)
                 # (?, 52, 300, 2)
-
-
-        #change model into resnet
-        if model == "resnet":
-            self.model = ResNet50(include_top=True, weights=None, pooling='max', classes=num_classes,\
-                input_tensor=self.embedded_chars_expanded)
-            return 
 
         # Create a convolution + maxpool layer for each filter size
         pooled_outputs = []
@@ -84,7 +67,7 @@ class TextCNN(object):
                 pooled_outputs.append(pooled)
 
         # Combine all the pooled features
-        num_filters_total = num_filters * len(filter_sizes) // num_channels # 3 * 128 = 384
+        num_filters_total = num_filters * len(filter_sizes) # 3 * 128 = 384
         self.h_pool = tf.concat(pooled_outputs, 3)
         self.h_pool_flat = tf.reshape(self.h_pool, [-1, num_filters_total])
 
