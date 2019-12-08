@@ -1,6 +1,7 @@
 import tensorflow as tf
 import numpy as np
 from tensorflow.keras.applications import ResNet50
+from operator import methodcaller
 
 
 class TextCNN(object):
@@ -26,7 +27,17 @@ class TextCNN(object):
                 tf.random_uniform([vocab_size, embedding_size], -1.0, 1.0),
                 name="W",
                 trainable=True)
+
+            # #for glove word vec
+            # mapper, embed = embedding_glove(embedding_size)
+            # self.embedded_chars = tf.nn.embedding_lookup(embed, mapper[self.input_x[:,0,:]])
+            # #for fasttext word vec
+            # mapper, embed = embedding_fast(embedding_size)
+            # self.embedded_chars = tf.nn.embedding_lookup(embed, mapper[self.input_x[:,0,:]])
+            #for random
             self.embedded_chars = tf.nn.embedding_lookup(self.W, self.input_x[:,0,:])
+
+
             self.embedded_chars_expanded = tf.expand_dims(self.embedded_chars, -1)
             # print("original: ",self.embedded_chars_expanded.shape)
             # (?, 52, 300, 1)
@@ -39,6 +50,7 @@ class TextCNN(object):
                 self.embedded_chars_expanded = tf.stack([self.embedded_chars, emb2], axis=3)
                 # print("multichannel: ",self.embedded_chars_expanded.shape)
                 # (?, 52, 300, 2)
+
 
         #change model into resnet
         if model == "resnet":
@@ -101,3 +113,45 @@ class TextCNN(object):
         with tf.name_scope("accuracy"):
             correct_predictions = tf.equal(self.predictions, tf.argmax(self.input_y, 1))
             self.accuracy = tf.reduce_mean(tf.cast(correct_predictions, "float"), name="accuracy")
+
+
+
+    def embedding_glove(embedding_size): # [vocab_size, embedding_size 300]
+        f = open("embedding/glove.6B.300d.txt", 'r')
+        data = f.read()
+        temp = data.split("\n")
+        temp = list(map(methodcaller("split", " "), temp))
+        f.close()
+
+        mapper = {}
+        embed = np.zeros([len(temp), embedding_size])
+
+        for idx, t in enumerate(temp):
+            embed[idx] = np.array(t[1:])
+            mapper[t[0]] = idx
+
+        return mapper, embed
+
+    def embedding_w2v(embedding_size): # [vocab_size, embedding_size 300]
+        pass
+
+    def embedding_fast(embedding_size): # [vocab_size, embedding_size 300]
+        f = open("embedding/glove.6B.300d.txt", 'r')
+        data = f.read()
+        temp = data.split("\n")[1:]
+        temp = list(map(methodcaller("split", " "), temp))
+        f.close()
+
+        mapper = {}
+        embed = np.zeros([len(temp), embedding_size])
+
+        for idx, t in enumerate(temp):
+            embed[idx] = np.array(t[1:])
+            mapper[t[0]] = idx
+
+        return mapper, embed
+
+
+
+
+

@@ -12,6 +12,8 @@ __pycache__/
 # C extensions
 *.so
 
+embedding/
+
 # Distribution / packaging
 .Python
 env/
