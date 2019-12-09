@@ -59,7 +59,7 @@ def train(x_train, y_train, vocab_processor, x_dev, y_dev):
           log_device_placement=False)
         sess = tf.Session(config=session_conf)
         print('backend',K.backend())
-        K.set_session(sess) # connect Keras backend
+        #K.set_session(sess) # connect Keras backend
 
         with sess.as_default():
             with tf.device('/gpu:0'):
@@ -159,7 +159,7 @@ def train(x_train, y_train, vocab_processor, x_dev, y_dev):
                 y_batch = tf.argmax(np.array(y_batch), axis=1)
                 y_batch = tf.reshape(y_batch, [-1,1])
 
-                loss, accuracy = model.test_on_batch(x_batch, y_batch, sample_weight=None, reset_metrics=True)
+                loss, accuracy = model.test_on_batch(x_batch, y_batch)
                 time_str = datetime.datetime.now().isoformat()
                 print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
 
@@ -179,7 +179,9 @@ def train(x_train, y_train, vocab_processor, x_dev, y_dev):
                     dev_step(x_dev, y_dev, current_step)
                     print("")
                 if current_step % checkpoint_every == 0:
-                    path = saver.save(sess, checkpoint_prefix, global_step=current_step)
+                    #path = saver.save(sess, checkpoint_prefix, global_step=current_step)
+                    path = os.path.join(checkpoint_prefix), current_step
+                    model.save(path)
                     print("Saved model checkpoint to {}\n".format(path))
 
 def main(argv=None):
