@@ -27,6 +27,8 @@ l2_reg_lambda = 0.0
 batch_size = 64
 num_epochs = 100
 
+best_accuracy = 0
+
 def preprocess():
     # Data Preparation
     # ==================================================
@@ -221,6 +223,7 @@ def train(x_train, y_train, vocab_processor, x_dev, y_dev):
                     feed_dict)
                 time_str = datetime.datetime.now().isoformat()
                 print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
+                best_accuracy = max(accuracy, best_accuracy)
                 if writer:
                     writer.add_summary(summaries, step)
 
@@ -243,5 +246,7 @@ def train(x_train, y_train, vocab_processor, x_dev, y_dev):
 def main():
     x_train, y_train, vocab_processor, x_dev, y_dev = preprocess()
     train(x_train, y_train, vocab_processor, x_dev, y_dev)
+    print("============ best accuracy ============")
+    print(best_accuracy)
 
 main()
