@@ -11,12 +11,12 @@ from tensorflow.contrib import learn
 
 # Parameters
 # ==================================================
-checkpoint_directory = "fasttext"
-embedding = "fasttext"
+checkpoint_directory = "baseline_rand"
+embedding = ""
 embedding_dim = 300
 filter_sizes = [3,4,5]
 num_filters = 128
-num_channels = 2
+num_channels = 1
 
 evaluate_every = 100
 checkpoint_every = 100
@@ -25,7 +25,7 @@ num_checkpoints = 5
 dropout_keep_prob = 0.5
 l2_reg_lambda = 0.0
 batch_size = 64
-num_epochs = 200
+num_epochs = 100
 
 def preprocess():
     # Data Preparation
@@ -34,8 +34,8 @@ def preprocess():
     # Load data
     print("Loading data...")
     # x_text, y = data_helpers.load_data_and_labels(positive_data_file, negative_data_file)
-    x_train, y_train = data_helpers.load_sst_binary('./data/sst-binary/stsa.binary.train')
-    x_dev, y_dev = data_helpers.load_sst_binary('./data/sst-binary/stsa.binary.test')
+    x_train, y_train = data_helpers.load_sst_fine('./data/sst-fine/stsa.fine.train')
+    x_dev, y_dev = data_helpers.load_sst_fine('./data/sst-fine/stsa.fine.test')
     # Build vocabulary
     max_document_length = max([len(x.split(" ")) for x in x_train])
     vocab_processor = learn.preprocessing.VocabularyProcessor(max_document_length)
@@ -98,7 +98,7 @@ def train(x_train, y_train, vocab_processor, x_dev, y_dev):
 
             # Output directory for models and summaries
             #timestamp = str(int(time.time()))
-            out_dir = os.path.abspath(os.path.join(os.path.curdir, "runs", checkpoint_directory))
+            out_dir = os.path.abspath(os.path.join(os.path.curdir, "runs-fine", checkpoint_directory))
             print("Writing to {}\n".format(out_dir))
 
             # Summaries for loss and accuracy

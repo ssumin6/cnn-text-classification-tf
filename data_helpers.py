@@ -55,6 +55,25 @@ def load_sst_binary(input_data_file):
             y.append([1, 0])
     return [np.array(x_text), np.array(y)]
 
+def load_sst_fine(input_data_file):
+    # Load data from files
+    examples = list(open(input_data_file, "r", encoding='utf-8').readlines())
+    x_text = []
+    y = []
+    for s in examples:
+        x_text.append(clean_str(s[2:].strip()))
+        if int(s[0])==1:
+            y.append([0, 1, 0, 0, 0])
+        elif int(s[0])== 2:
+            y.append([0, 0, 1, 0, 0])
+        elif int(s[0])== 3:
+            y.append([0, 0, 0, 1, 0])
+        elif int(s[0]) == 4:
+            y.append([0, 0, 0, 0, 1])
+        else: ##0
+            y.append([1, 0, 0, 0, 0])
+    return [np.array(x_text), np.array(y)] 
+
 def batch_iter(data, batch_size, num_epochs, shuffle=True):
     """
     Generates a batch iterator for a dataset.

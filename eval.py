@@ -40,8 +40,9 @@ if FLAGS.eval_train:
     x_raw, y_test = data_helpers.load_data_and_labels(FLAGS.positive_data_file, FLAGS.negative_data_file)
     y_test = np.argmax(y_test, axis=1)
 else:
-    x_raw = ["a masterpiece four years in the making", "everything is off."]
-    y_test = [1, 0]
+    x_raw, y_test = data_helpers.load_sst_binary('./data/sst-binary/stsa.binary.test')
+    #x_raw = ["a masterpiece four years in the making", "everything is off."]
+    y_test = np.argmax(y_test, axis=1)
 
 # Map data into vocabulary
 vocab_path = os.path.join(FLAGS.checkpoint_dir, "..", "vocab")
